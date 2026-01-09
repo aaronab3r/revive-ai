@@ -2,6 +2,7 @@
 
 import { google } from 'googleapis';
 import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
@@ -13,6 +14,16 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const calendar = google.calendar({ version: 'v3', auth });
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+async function getUserCalendarEmail() {
+  const { data: settings } = await supabase.from('settings').select('calendar_email').single();
+  return settings?.calendar_email;
+}
 
 interface AppointmentDetails {
   name: string;
@@ -27,6 +38,12 @@ export async function manageAppointment(
   details: AppointmentDetails
 ): Promise<string | null> {
   try {
+    const calendarEmail = await getUserCalendarEmail();
+    if (!calendarEmail) {
+      console.error('❌ Configuration Error: Missing calendar_email in settings.');
+      return null;
+    }
+
     const { name, phone, datetime } = details;
     
     // Calculate end time (1 hour duration)
@@ -48,7 +65,7 @@ export async function manageAppointment(
 
     if (action === 'create') {
       const response = await calendar.events.insert({
-        calendarId: process.env.CALENDAR_EMAIL || 'primary',
+        calendarId: calendarEmail,
         requestBody: eventResource,
       });
 
@@ -63,7 +80,7 @@ export async function manageAppointment(
       if (!eventIdToUpdate) {
         // Search for upcoming events containing the phone number
         const listResponse = await calendar.events.list({
-          calendarId: process.env.CALENDAR_EMAIL || 'primary',
+          calendarId: calendarEmail,
           q: phone, // Free text search for the phone number
           timeMin: new Date().toISOString(), // Filter for future events
           singleEvents: true,
@@ -84,7 +101,7 @@ export async function manageAppointment(
       if (eventIdToUpdate) {
         // Update existing event
         const response = await calendar.events.patch({
-          calendarId: process.env.CALENDAR_EMAIL || 'primary',
+          calendarId: calendarEmail,
           eventId: eventIdToUpdate,
           requestBody: {
             start: eventResource.start,
@@ -99,7 +116,7 @@ export async function manageAppointment(
         // Fallback: Create new if not found
         // console.log('⚠️ No existing event found to update. Creating new event.');
         const response = await calendar.events.insert({
-          calendarId: process.env.CALENDAR_EMAIL || 'primary',
+          calendarId: calendarEmail,
           requestBody: eventResource,
         });
         return response.data.htmlLink || null;
@@ -120,6 +137,11 @@ export async function checkAvailability(date: string) {
   // console.log("📅 DEBUG: Checking availability for:", date);
   
   try {
+    const calendarEmail = await getUserCalendarEmail();
+    if (!calendarEmail) {
+      return "Configuration Error: Please configure your Calendar Email in Settings.";
+    }
+
     // START: Auth Logic - Using global 'calendar' instance initialized at top of file
     // This matches the authentication method used by manageAppointment
     
@@ -133,7 +155,7 @@ export async function checkAvailability(date: string) {
     // console.log(`Checking Time Range: ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
 
     const events = await calendar.events.list({
-      calendarId: 'primary', 
+      calendarId: calendarEmail, 
       timeMin: startOfDay.toISOString(),
       timeMax: endOfDay.toISOString(),
       singleEvents: true,

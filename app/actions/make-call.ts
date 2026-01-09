@@ -100,13 +100,13 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
   // Fetch Settings for Dynamic Keys
   const { data: settings } = await supabase.from('settings').select('*').single();
 
-  // Prioritize DB settings, fallback to Environment Variables
-  const apiKey = settings?.vapi_private_key || process.env.VAPI_PRIVATE_KEY;
-  const assistantId = settings?.vapi_assistant_id || process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-  const phoneNumberId = settings?.vapi_phone_number_id || process.env.VAPI_PHONE_NUMBER_ID;
+  // STRICT RULE: Only use User Settings. Do not use system ENV vars.
+  const apiKey = settings?.vapi_private_key;
+  const assistantId = settings?.vapi_assistant_id;
+  const phoneNumberId = settings?.vapi_phone_number_id;
 
   if (!apiKey || !assistantId || !phoneNumberId) {
-    return { success: false, error: 'Configuration missing. Please add API Keys in Settings.' };
+    return { success: false, error: 'Please configure your Vapi Keys in the Settings tab to start calling.' };
   }
 
   // Update Supabase Status (Upsert Lead)
