@@ -5,9 +5,10 @@ import { revalidatePath } from 'next/cache';
 
 export interface SettingsData {
   vapi_private_key: string;
+  vapi_public_key: string;
   vapi_assistant_id: string;
   vapi_phone_number_id: string;
-  calendar_email: string; // Updated to match DB schema
+  calendar_email: string;
 }
 
 export async function getSettings() {
@@ -32,19 +33,21 @@ export async function updateSettings(formData: FormData) {
   }
 
   const vapi_private_key = formData.get('vapi_private_key') as string;
+  const vapi_public_key = formData.get('vapi_public_key') as string;
   const vapi_assistant_id = formData.get('vapi_assistant_id') as string;
   const vapi_phone_number_id = formData.get('vapi_phone_number_id') as string;
-  const google_service_email = formData.get('google_service_email') as string;
+  const calendar_email = formData.get('calendar_email') as string;
 
-  // Matching User's Schema: id=true (bool singleton), calendar_email column, no updated_at
+  // Matching User's Schema: id=true (bool singleton)
   const { error } = await supabaseAdmin
     .from('settings')
     .upsert({
       id: true, 
       vapi_private_key,
+      vapi_public_key,
       vapi_assistant_id,
       vapi_phone_number_id,
-      calendar_email: google_service_email
+      calendar_email
     });
 
   if (error) {
