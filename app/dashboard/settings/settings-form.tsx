@@ -52,7 +52,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8" autoComplete="off">
           
           {/* VAPI Configuration */}
           <div className="space-y-4">
@@ -65,6 +65,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
                   id="vapi_private_key"
                   name="vapi_private_key" 
                   type="password" 
+                  autoComplete="new-password"
                   defaultValue={defaults.vapi_private_key || ''} 
                 />
                 <p className="text-xs text-muted-foreground">Used for server-side API calls.</p>
@@ -76,6 +77,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
                   id="vapi_public_key"
                   name="vapi_public_key" 
                   type="password" 
+                  autoComplete="new-password"
                   defaultValue={defaults.vapi_public_key || ''} 
                 />
                 <p className="text-xs text-muted-foreground">Used for client-side interactions (if needed).</p>
@@ -118,6 +120,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
                   id="calendar_email"
                   name="calendar_email" 
                   type="email" 
+                  autoComplete="off"
                   defaultValue={defaults.calendar_email || ''} 
                   placeholder="doctor@clinic.com" 
                 />
