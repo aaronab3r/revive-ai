@@ -7,7 +7,7 @@ import { Upload, FileText, CheckCircle2, Download, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Lead } from '@/types';
+import { Lead, LeadStatus } from '@/types';
 
 interface FileUploaderProps {
   onFileAccepted?: (file: File) => void;
@@ -34,7 +34,7 @@ export function FileUploader({ onFileAccepted, onLeadsParsed }: FileUploaderProp
                 name: row.Name || row.name || 'Unknown',
                 phone: row.Phone || row.phone || '',
                 email: row.Email || row.email || '',
-                status: 'Pending',
+                status: 'Pending' as LeadStatus,
                 lastContacted: null,
                 interest: row.Interest || row.interest || 'General',
                 notes: row.Notes || row.notes || '',
