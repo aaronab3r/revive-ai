@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 const VAPI_BASE_URL = 'https://api.vapi.ai';
-const WEBHOOK_URL = 'https://revive-ai.vercel.app/api/vapi/webhook';
+const WEBHOOK_URL = 'https://revive-ai-three.vercel.app/api/vapi/webhook';
 
 // Dynamic System Prompt Generator
 function generateSystemPrompt(agentName: string, agentRole: string, businessName: string, industry: string): string {
