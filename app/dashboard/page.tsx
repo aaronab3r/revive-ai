@@ -164,7 +164,7 @@ export default function DashboardPage() {
       {/* Header Section */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Patient Reactivation
+          Customer Reactivation
         </h1>
         <p className="mt-1 text-slate-500">
           Upload leads to fill your calendar.
@@ -191,9 +191,9 @@ export default function DashboardPage() {
         <div className="space-y-6 lg:col-span-1">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Import Patients</CardTitle>
+              <CardTitle className="text-lg">Import Leads</CardTitle>
               <CardDescription>
-                Upload your patient list to start the reactivation campaign
+                Upload your customer list to start the reactivation campaign
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
             <div className="space-y-1">
               <CardTitle className="text-lg">Lead Pipeline</CardTitle>
               <CardDescription>
-                Track and manage your patient reactivation progress
+                Track and manage your customer reactivation progress
               </CardDescription>
             </div>
             <button 

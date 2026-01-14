@@ -155,7 +155,7 @@ export function FileUploader({ onFileAccepted, onLeadsParsed }: FileUploaderProp
             </div>
             <div className="text-center">
               <p className="font-medium text-slate-900">
-                {isDragActive ? 'Drop your file here' : 'Drop your patient list'}
+                {isDragActive ? 'Drop your file here' : 'Drop your lead list'}
               </p>
               <p className="text-sm text-slate-500">
                 or click to browse (CSV, XLS, XLSX)

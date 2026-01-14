@@ -58,10 +58,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function getUserCalendarEmail() {
-  const { data: settings, error } = await supabase.from('settings').select('calendar_email').eq('id', true).single();
+async function getUserCalendarEmail(userId: string) {
+  const { data: settings, error } = await supabase
+    .from('settings')
+    .select('calendar_email')
+    .eq('user_id', userId)
+    .single();
+    
   if (error) {
-    console.error('❌ Error fetching calendar_email:', error.message);
+    console.error(`❌ Error fetching calendar_email for user ${userId}:`, error.message);
     return null;
   }
   console.log('📅 Calendar email from settings:', settings?.calendar_email || 'NOT SET');
@@ -78,10 +83,11 @@ interface AppointmentDetails {
 
 export async function manageAppointment(
   action: 'create' | 'update',
-  details: AppointmentDetails
+  details: AppointmentDetails,
+  userId: string
 ): Promise<string | null> {
   try {
-    const calendarEmail = await getUserCalendarEmail();
+    const calendarEmail = await getUserCalendarEmail(userId);
     if (!calendarEmail) {
       console.error('❌ Configuration Error: Missing calendar_email in settings.');
       return null;
@@ -176,11 +182,11 @@ export async function manageAppointment(
   }
 }
 
-export async function checkAvailability(date: string) {
+export async function checkAvailability(date: string, userId: string) {
   console.log("📅 checkAvailability called with date:", date);
   
   try {
-    const calendarEmail = await getUserCalendarEmail();
+    const calendarEmail = await getUserCalendarEmail(userId);
     if (!calendarEmail) {
       console.error('❌ No calendar email configured');
       return "Configuration Error: Please configure your Calendar Email in Settings.";

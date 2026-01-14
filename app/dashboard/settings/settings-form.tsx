@@ -188,7 +188,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
                   id="business_name"
                   name="business_name" 
                   type="text" 
-                  placeholder="e.g., Sunrise Dental, Peak Realty"
+                  placeholder="e.g., Acme Solutions, Peak Realty"
                   className="bg-white"
                   defaultValue={defaults.business_name || ''}
                 />
@@ -234,11 +234,11 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
                   id="agent_role"
                   name="agent_role" 
                   type="text" 
-                  placeholder="Patient Coordinator"
+                  placeholder="Scheduling Assistant"
                   className="bg-white"
                   defaultValue={defaults.agent_role || 'Assistant'}
                 />
-                <p className="text-xs text-slate-500">e.g., Patient Coordinator, Scheduling Assistant</p>
+                <p className="text-xs text-slate-500">e.g., Scheduling Assistant, Client Liaison</p>
               </div>
             </div>
           </div>

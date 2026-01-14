@@ -2,9 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { manageAppointment, checkAvailability } from '@/app/actions/calendar';
 
-// Initialize Supabase
+// Initialize Supabase - Use Service Role Key to bypass RLS for webhook operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // CHANGED from ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(req: Request) {
@@ -24,9 +24,16 @@ export async function POST(req: Request) {
 
     // Robust extraction of phone number
     const incomingPhone = message.customer?.number || message.call?.customer?.number;
+    
+    // Extract UserID
+    const userId = message.call?.assistantOverrides?.variableValues?.userId || message.assistantOverrides?.variableValues?.userId;
 
     if (!incomingPhone) {
       return NextResponse.json({ message: "No customer phone number found" }, { status: 200 });
+    }
+    
+    if (!userId && message.type === 'tool-calls') {
+      console.warn("⚠️ UserID missing in webhook payload. Calendar operations may fail.");
     }
 
     // console.log("Incoming Phone:", incomingPhone);
@@ -58,15 +65,17 @@ export async function POST(req: Request) {
           const notes = `Appointment: ${args.datetime || 'Unspecified'}. Notes: ${args.notes || 'None'}`;
           
           // 1. UPDATE DB
-          await updateLeadStatus(incomingPhone, 'Booked', notes);
+          await updateLeadStatus(incomingPhone, 'Booked', notes, userId);
 
           // 2. GOOGLE CALENDAR
-          if (args.datetime) {
+          if (args.datetime && userId) {
             await manageAppointment('create', {
               name: customerName,
               phone: incomingPhone,
               datetime: args.datetime
-            });
+            }, userId);
+          } else if (!userId) {
+             return NextResponse.json({ results: [{ toolCallId: toolCall.id, result: "Error: User context missing." }] });
           }
           
           return NextResponse.json({ 
@@ -82,15 +91,15 @@ export async function POST(req: Request) {
           const notes = `Rescheduled to: ${args.datetime || 'Unspecified'}.`;
 
           // 1. UPDATE DB
-          await updateLeadStatus(incomingPhone, 'Booked', notes);
+          await updateLeadStatus(incomingPhone, 'Booked', notes, userId);
 
           // 2. GOOGLE CALENDAR
-          if (args.datetime) {
+          if (args.datetime && userId) {
             await manageAppointment('update', {
               name: customerName,
               phone: incomingPhone,
               datetime: args.datetime
-            });
+            }, userId);
           }
 
           return NextResponse.json({ 
@@ -111,8 +120,12 @@ export async function POST(req: Request) {
               }]
             });
           }
+          
+          if (!userId) {
+             return NextResponse.json({ results: [{ toolCallId: toolCall.id, result: "Configuration Error: User identification missing." }] });
+          }
 
-          const availability = await checkAvailability(args.date);
+          const availability = await checkAvailability(args.date, userId);
           return NextResponse.json({
             results: [{
               toolCallId: toolCall.id,
@@ -168,27 +181,33 @@ export async function POST(req: Request) {
 // ---------------------------------------------------------
 // HELPER: ROBUST PHONE MATCHING
 // ---------------------------------------------------------
-async function updateLeadStatus(incomingPhone: string, status: string, notes: string) {
+async function updateLeadStatus(incomingPhone: string, status: string, notes: string, userId?: string) {
   // 1. Clean the number (remove +)
   const cleanPhone = incomingPhone.replace('+', ''); // "1321..."
   const last10 = cleanPhone.slice(-10); // "321..."
 
   // console.log(`Attempting update for ${incomingPhone} | Clean: ${cleanPhone} | Last10: ${last10} -> Status: ${status}`);
 
+  // Helper used to apply user filter if available
+  const applyUserFilter = (query: any) => {
+    if (userId) return query.eq('user_id', userId);
+    return query;
+  }
+
   // TRY 1: Exact Match (+1321...)
-  let { data, error } = await supabase
+  let { data, error } = await applyUserFilter(supabase
     .from('leads')
     .update({ status: status, notes: notes })
-    .eq('phone', incomingPhone)
+    .eq('phone', incomingPhone))
     .select();
 
   // TRY 2: Clean Match (1321...)
   if (!data || data.length === 0) {
     // console.log("Exact match failed. Trying clean match (no plus)...");
-    ({ data, error } = await supabase
+    ({ data, error } = await applyUserFilter(supabase
       .from('leads')
       .update({ status: status, notes: notes })
-      .eq('phone', cleanPhone)
+      .eq('phone', cleanPhone))
       .select());
   }
 
@@ -197,11 +216,17 @@ async function updateLeadStatus(incomingPhone: string, status: string, notes: st
     // console.log(`Clean match failed. Trying last 10 digits: ${last10}...`);
     // Note: This logic assumes most leads in DB allow unique identification by last 10 digits
     // We first find the lead ID to ensure we don't accidentally update multiple if data is messy
-    const { data: searchData } = await supabase
+    let query = supabase
       .from('leads')
       .select('id, phone')
       .or(`phone.eq.${last10},phone.ilike.%${last10}`) // Try exact match of 10 digits OR partial match
       .limit(1);
+      
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data: searchData } = await query;
 
     if (searchData && searchData.length > 0) {
        const targetId = searchData[0].id;
@@ -209,6 +234,10 @@ async function updateLeadStatus(incomingPhone: string, status: string, notes: st
        ({ data, error } = await supabase
          .from('leads')
          .update({ status: status, notes: notes })
+         .eq('id', targetId)
+         .select());
+    }
+  }
          .eq('id', targetId)
          .select());
     }

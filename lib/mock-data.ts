@@ -79,7 +79,7 @@ function generateLead(index: number): Lead {
     status: statusOverrides[index] || status,
     lastContacted: statusOverrides[index] === 'Pending' ? null : getRandomDate(30, index),
     interest: interests[index % interests.length],
-    notes: `Patient interested in ${interests[index % interests.length].toLowerCase()}`,
+    notes: `Customer interested in ${interests[index % interests.length].toLowerCase()}`,
     createdAt: getRandomDate(60, index + 100),
   };
 }

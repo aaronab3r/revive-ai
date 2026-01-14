@@ -162,7 +162,8 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
         },
         assistantOverrides: {
           variableValues: {
-            interest: interest.trim() || 'general dental services',
+            interest: interest.trim() || 'general services',
+            userId: user.id
           },
         },
       }),
