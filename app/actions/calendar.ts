@@ -10,20 +10,37 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 function getGoogleAuth() {
   const jsonString = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   
+  console.log('🔐 Google Auth: ENV var exists?', !!jsonString);
+  
   if (jsonString) {
     // Parse the JSON from environment variable
     try {
-      const credentials = JSON.parse(jsonString);
+      // Handle potential escaped newlines in the private key
+      const cleanedJson = jsonString.replace(/\\n/g, '\n');
+      const credentials = JSON.parse(cleanedJson);
+      console.log('🔐 Google Auth: Parsed credentials for', credentials.client_email);
       return new google.auth.GoogleAuth({
         credentials,
         scopes: SCOPES,
       });
-    } catch (e) {
-      console.error('❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', e);
-      throw new Error('Invalid service account configuration');
+    } catch (e: any) {
+      console.error('❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', e?.message);
+      // Try parsing without the newline replacement
+      try {
+        const credentials = JSON.parse(jsonString);
+        console.log('🔐 Google Auth: Parsed credentials (2nd attempt) for', credentials.client_email);
+        return new google.auth.GoogleAuth({
+          credentials,
+          scopes: SCOPES,
+        });
+      } catch (e2: any) {
+        console.error('❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON (2nd attempt):', e2?.message);
+        throw new Error('Invalid service account configuration');
+      }
     }
   } else {
     // Fallback to file for local development (if env var not set)
+    console.log('🔐 Google Auth: Using local file');
     const path = require('path');
     return new google.auth.GoogleAuth({
       keyFile: path.join(process.cwd(), 'service_account.json'),
