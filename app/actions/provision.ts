@@ -230,10 +230,6 @@ export async function provisionSystem(params: ProvisionParams): Promise<Provisio
   );
   const firstMessage = generateFirstMessage(finalAgentName, businessName);
 
-  // Log partial key for debugging (first 8 chars only)
-  const keyPreview = vapiPrivateKey.substring(0, 8) + '...';
-  console.log('🔑 Using Vapi Key starting with:', keyPreview);
-
   const headers = {
     'Authorization': `Bearer ${vapiPrivateKey}`,
     'Content-Type': 'application/json',
@@ -330,7 +326,7 @@ export async function provisionSystem(params: ProvisionParams): Promise<Provisio
     if (phoneNumberList.length === 0) {
       return { 
         success: false, 
-        message: `No phone number found for this Vapi account (key: ${keyPreview}). Make sure you're using the Private Key from the same account where you purchased the phone number. Go to vapi.ai → Phone Numbers to verify.` 
+        message: `No phone number found for this Vapi account. Make sure you're using the Private Key from the same account where you purchased the phone number. Go to vapi.ai → Phone Numbers to verify.` 
       };
     }
 

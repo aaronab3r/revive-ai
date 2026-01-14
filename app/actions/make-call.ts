@@ -116,12 +116,6 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
   const assistantId = settings?.vapi_assistant_id;
   const phoneNumberId = settings?.vapi_phone_number_id;
 
-  console.log('📞 makeCall - Keys check:', {
-    hasApiKey: !!apiKey,
-    hasAssistantId: !!assistantId,
-    hasPhoneNumberId: !!phoneNumberId,
-  });
-
   if (!apiKey || !assistantId || !phoneNumberId) {
     return { success: false, error: 'Please configure your Vapi Keys in the Settings tab to start calling.' };
   }

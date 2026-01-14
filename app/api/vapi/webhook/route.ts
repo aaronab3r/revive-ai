@@ -7,16 +7,22 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // CHANGED from ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Optional webhook secret for enhanced security
+const WEBHOOK_SECRET = process.env.VAPI_WEBHOOK_SECRET;
+
 export async function POST(req: Request) {
-  // console.log("🔔 WEBHOOK RECEIVED:", new Date().toISOString());
+  // Security: Verify webhook secret if configured
+  if (WEBHOOK_SECRET) {
+    const providedSecret = req.headers.get('x-vapi-secret') || req.headers.get('authorization')?.replace('Bearer ', '');
+    if (providedSecret !== WEBHOOK_SECRET) {
+      console.warn('⚠️ Webhook request rejected: Invalid or missing secret');
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   try {
     const body = await req.json();
-    // console.log("📦 Payload Type:", body.message?.type);
     const message = body.message;
-
-    // 1. Log the incoming message for debugging
-    // console.log("--- Vapi Webhook ---");
-    // console.log("Type:", message.type);
 
     if (!message) {
       return NextResponse.json({ message: "No message found" }, { status: 200 });
