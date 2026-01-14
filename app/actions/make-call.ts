@@ -86,24 +86,32 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
     return { success: false, error: `Invalid phone number format: ${phone}` };
   }
 
-  // Initialize Supabase Client
+  // Initialize Supabase Client with Service Role Key (to bypass RLS)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   let supabase;
 
-  if (supabaseUrl && supabaseKey) {
-    supabase = createClient(supabaseUrl, supabaseKey);
+  if (supabaseUrl && supabaseServiceKey) {
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
   } else {
     return { success: false, error: 'Database configuration error' };
   }
 
   // Fetch Settings for Dynamic Keys
-  const { data: settings } = await supabase.from('settings').select('*').single();
+  const { data: settings, error: settingsError } = await supabase.from('settings').select('*').eq('id', true).single();
+  
+  console.log('📞 makeCall - Fetched settings:', settings ? 'Found' : 'Not found', settingsError?.message || '');
 
   // STRICT RULE: Only use User Settings. Do not use system ENV vars.
   const apiKey = settings?.vapi_private_key;
   const assistantId = settings?.vapi_assistant_id;
   const phoneNumberId = settings?.vapi_phone_number_id;
+
+  console.log('📞 makeCall - Keys check:', {
+    hasApiKey: !!apiKey,
+    hasAssistantId: !!assistantId,
+    hasPhoneNumberId: !!phoneNumberId,
+  });
 
   if (!apiKey || !assistantId || !phoneNumberId) {
     return { success: false, error: 'Please configure your Vapi Keys in the Settings tab to start calling.' };

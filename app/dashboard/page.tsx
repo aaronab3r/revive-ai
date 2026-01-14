@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { FileUploader } from '@/components/dashboard/file-uploader';
 import { LeadsDataTable } from '@/components/dashboard/leads-table';
 import { StatsGrid } from '@/components/dashboard/stats-grid';
+import { TestCallCard } from '@/components/dashboard/test-call-card';
 import { DashboardChart } from './dashboard-chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { mockLeads, mockDashboardStats } from '@/lib/mock-data';
@@ -19,6 +20,27 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [importCount, setImportCount] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(false);
+
+  // Check if settings are configured
+  useEffect(() => {
+    const checkConfig = async () => {
+      try {
+        const { data } = await supabase
+          .from('settings')
+          .select('vapi_private_key, vapi_assistant_id, vapi_phone_number_id')
+          .eq('id', true)
+          .single();
+        
+        if (data?.vapi_private_key && data?.vapi_assistant_id && data?.vapi_phone_number_id) {
+          setIsConfigured(true);
+        }
+      } catch (e) {
+        console.error('Error checking config:', e);
+      }
+    };
+    checkConfig();
+  }, []);
 
   // Fetch initial leads from Supabase
   useEffect(() => {
@@ -147,17 +169,22 @@ export default function DashboardPage() {
       {/* Main Content - 2 Column Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Zone A - File Uploader */}
-        <Card className="border-slate-200 shadow-sm lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Import Patients</CardTitle>
-            <CardDescription>
-              Upload your patient list to start the reactivation campaign
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FileUploader onLeadsParsed={handleLeadsParsed} />
-          </CardContent>
-        </Card>
+        <div className="space-y-6 lg:col-span-1">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Import Patients</CardTitle>
+              <CardDescription>
+                Upload your patient list to start the reactivation campaign
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FileUploader onLeadsParsed={handleLeadsParsed} />
+            </CardContent>
+          </Card>
+
+          {/* Test Call Card */}
+          <TestCallCard isConfigured={isConfigured} />
+        </div>
 
         {/* Zone B - Leads Table */}
         <Card className="border-slate-200 shadow-sm lg:col-span-2">

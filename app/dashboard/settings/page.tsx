@@ -22,6 +22,10 @@ export default async function SettingsPage() {
     vapi_assistant_id: settings.vapi_assistant_id || '',
     vapi_phone_number_id: settings.vapi_phone_number_id || '',
     calendar_email: settings.calendar_email || '',
+    business_name: settings.business_name || '',
+    business_industry: settings.business_industry || '',
+    agent_name: settings.agent_name || '',
+    agent_role: settings.agent_role || '',
   } : null;
 
   return (

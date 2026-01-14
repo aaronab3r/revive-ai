@@ -74,7 +74,7 @@ export default function LandingPage() {
                         <div className="flex-none p-1 bg-green-100 rounded-full">
                            <CheckCircle2 className="w-5 h-5 text-green-600" />
                         </div>
-                        <span className="text-slate-700 font-medium">Syncs directly to your practice calendar</span>
+                        <span className="text-slate-700 font-medium">Syncs directly to your calendar</span>
                       </div>
                    </div>
                 </div>

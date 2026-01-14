@@ -13,10 +13,18 @@ export async function Header() {
   const hasPhone = db.vapi_phone_number_id || env.VAPI_PHONE_NUMBER_ID;
 
   const isConfigured = hasKey && hasAssistant && hasPhone;
+  
+  // Get business info for display
+  const businessName = db.business_name || 'Your Business';
+  const agentName = db.agent_name || 'AI Agent';
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-8 backdrop-blur-sm">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-slate-900">{businessName}</span>
+          <span className="text-xs text-slate-500">{agentName} • AI Assistant</span>
+        </div>
         {isConfigured ? (
           <Badge variant="success" className="gap-1.5 bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
             <span className="h-1.5 w-1.5 rounded-full bg-green-500" />

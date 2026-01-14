@@ -15,7 +15,11 @@ const navigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  businessName?: string;
+}
+
+export function Sidebar({ businessName = 'Your Business' }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -62,15 +66,15 @@ export function Sidebar() {
             <Avatar className="h-9 w-9">
               <AvatarImage src="" alt="User" />
               <AvatarFallback className="bg-blue-100 text-blue-600 text-sm font-medium">
-                DR
+                {businessName.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-900 truncate">
-                Dr. Roberts
+                Admin
               </p>
               <p className="text-xs text-slate-500 truncate">
-                Smile Dental Care
+                {businessName}
               </p>
             </div>
           </div>

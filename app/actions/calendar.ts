@@ -1,27 +1,53 @@
 'use server';
 
 import { google } from 'googleapis';
-import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
-// Initialize Google Auth
-// Assumes service_account.json is in the project root
-const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(process.cwd(), 'service_account.json'),
-  scopes: SCOPES,
-});
+// Initialize Google Auth from environment variable (works on Vercel)
+// Falls back to file for local development
+function getGoogleAuth() {
+  const jsonString = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  
+  if (jsonString) {
+    // Parse the JSON from environment variable
+    try {
+      const credentials = JSON.parse(jsonString);
+      return new google.auth.GoogleAuth({
+        credentials,
+        scopes: SCOPES,
+      });
+    } catch (e) {
+      console.error('❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', e);
+      throw new Error('Invalid service account configuration');
+    }
+  } else {
+    // Fallback to file for local development (if env var not set)
+    const path = require('path');
+    return new google.auth.GoogleAuth({
+      keyFile: path.join(process.cwd(), 'service_account.json'),
+      scopes: SCOPES,
+    });
+  }
+}
 
+const auth = getGoogleAuth();
 const calendar = google.calendar({ version: 'v3', auth });
 
+// Use service role key to bypass RLS
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 async function getUserCalendarEmail() {
-  const { data: settings } = await supabase.from('settings').select('calendar_email').single();
+  const { data: settings, error } = await supabase.from('settings').select('calendar_email').eq('id', true).single();
+  if (error) {
+    console.error('❌ Error fetching calendar_email:', error.message);
+    return null;
+  }
+  console.log('📅 Calendar email from settings:', settings?.calendar_email || 'NOT SET');
   return settings?.calendar_email;
 }
 
@@ -134,23 +160,21 @@ export async function manageAppointment(
 }
 
 export async function checkAvailability(date: string) {
-  // console.log("📅 DEBUG: Checking availability for:", date);
+  console.log("📅 checkAvailability called with date:", date);
   
   try {
     const calendarEmail = await getUserCalendarEmail();
     if (!calendarEmail) {
+      console.error('❌ No calendar email configured');
       return "Configuration Error: Please configure your Calendar Email in Settings.";
     }
-
-    // START: Auth Logic - Using global 'calendar' instance initialized at top of file
-    // This matches the authentication method used by manageAppointment
-    
-    // END: Auth Logic
 
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
+    
+    console.log(`📅 Checking calendar: ${calendarEmail} from ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
 
     // console.log(`Checking Time Range: ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
 
@@ -163,19 +187,23 @@ export async function checkAvailability(date: string) {
       timeZone: 'America/New_York',
     });
 
-    // console.log(`📅 Events found: ${events.data.items?.length || 0}`);
+    console.log(`📅 Events found: ${events.data.items?.length || 0}`);
 
     const busySlots = events.data.items?.map(event => {
         const start = event.start?.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit', timeZone: 'America/New_York'}) : 'All Day';
         return start;
     }).join(', ');
 
-    return busySlots && busySlots.length > 0 
+    const result = busySlots && busySlots.length > 0 
       ? `Busy times on that day: ${busySlots}.` 
       : "The calendar is free. You can book.";
+    
+    console.log('📅 Availability result:', result);
+    return result;
       
-  } catch (error) {
-    console.error("Calendar Check Error:", error);
-    return "Could not check calendar.";
+  } catch (error: any) {
+    console.error("❌ Calendar Check Error:", error?.message || error);
+    console.error("❌ Full error:", JSON.stringify(error, null, 2));
+    return "Could not check calendar. There was a technical error.";
   }
 }
