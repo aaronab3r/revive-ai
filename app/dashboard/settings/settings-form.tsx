@@ -196,14 +196,21 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
 
               <div className="space-y-2">
                 <Label htmlFor="business_industry" className="text-sm font-medium">Industry</Label>
-                <Input 
+                <select 
                   id="business_industry"
                   name="business_industry"
-                  type="text"
-                  placeholder="e.g., Dental, Real Estate, HVAC, Legal"
-                  className="bg-white"
-                  defaultValue={defaults.business_industry || ''}
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  defaultValue={defaults.business_industry || 'General'}
+                >
+                  <option value="General">General</option>
+                  <option value="Dental">Dental</option>
+                  <option value="Medical">Medical</option>
+                  <option value="Real Estate">Real Estate</option>
+                  <option value="Home Services">Home Services</option>
+                  <option value="Legal">Legal</option>
+                  <option value="Fitness">Fitness</option>
+                  <option value="Salon/Spa">Salon/Spa</option>
+                </select>
               </div>
             </div>
 

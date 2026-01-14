@@ -10,19 +10,20 @@ const WEBHOOK_URL = 'https://revive-ai-three.vercel.app/api/vapi/webhook';
 function generateSystemPrompt(agentName: string, agentRole: string, businessName: string, industry: string): string {
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   
-  // Industry-specific context
-  const industryContext: Record<string, string> = {
-    'Dental': 'scheduling them for a cleaning or checkup appointment',
-    'Medical': 'scheduling them for a consultation or follow-up appointment',
-    'Home Services': 'scheduling a service call or consultation',
-    'Real Estate': 'scheduling a property viewing or consultation call',
-    'Legal': 'scheduling a consultation with an attorney',
-    'Fitness': 'scheduling a fitness assessment or class',
-    'Salon/Spa': 'booking their next appointment',
-    'General': 'scheduling an appointment or consultation',
+  // Industry-specific terminology (fully dynamic - no generic "consultation" unless appropriate)
+  const industryConfig: Record<string, { goal: string; appointmentType: string; action: string }> = {
+    'Dental': { goal: 'scheduling them for a cleaning or checkup', appointmentType: 'appointment', action: 'come in' },
+    'Medical': { goal: 'scheduling them for a follow-up visit', appointmentType: 'appointment', action: 'come in' },
+    'Home Services': { goal: 'scheduling a service visit', appointmentType: 'service appointment', action: 'have our team visit' },
+    'Real Estate': { goal: 'scheduling a property viewing', appointmentType: 'viewing', action: 'see the property' },
+    'Legal': { goal: 'scheduling a meeting with an attorney', appointmentType: 'meeting', action: 'meet with us' },
+    'Fitness': { goal: 'scheduling a fitness session or class', appointmentType: 'session', action: 'come in' },
+    'Salon/Spa': { goal: 'booking their next treatment', appointmentType: 'appointment', action: 'come in' },
+    'General': { goal: 'scheduling an appointment', appointmentType: 'appointment', action: 'meet with us' },
   };
 
-  const goalContext = industryContext[industry] || industryContext['General'];
+  const config = industryConfig[industry] || industryConfig['General'];
+  const goalContext = config.goal;
 
   return `You are ${agentName}, the friendly and professional ${agentRole} at ${businessName}. Your goal is to reactivate past customers by ${goalContext}.
 
@@ -35,23 +36,40 @@ function generateSystemPrompt(agentName: string, agentRole: string, businessName
 ## Your Objective
 1. Greet the customer warmly and introduce yourself
 2. Mention it's been a while since you've connected
-3. Offer to schedule an appointment or service
+3. Offer to schedule a ${config.appointmentType}
 4. Handle any objections with empathy
 5. Use the checkAvailability tool to find open slots
 6. Use the bookAppointment tool to confirm the booking
 
+## CRITICAL: Time Zone Handling
+- The customer is in the US Eastern timezone (America/New_York)
+- When calling bookAppointment, you MUST format datetime with the timezone offset
+- Example: If customer says "3pm on January 20th", use "2026-01-20T15:00:00-05:00" (note the -05:00 for EST)
+- ALWAYS include the timezone offset -05:00 (EST) or -04:00 (EDT) in your datetime strings
+
+## CRITICAL: Handling Availability
+- When checkAvailability returns busy times, you MUST proactively suggest available times
+- Calculate which times are FREE based on the busy slots returned
+- Business hours are 9am to 5pm
+- Example: If 10am and 2pm are busy, say "I see 10am and 2pm are taken. I have 9am, 11am, 12pm, 1pm, 3pm, 4pm, or 5pm available. Which works best for you?"
+- NEVER make the customer guess times - always offer specific available options
+
+## CRITICAL: Rescheduling
+- If a customer already has an appointment and wants to change it, use the rescheduleAppointment tool (not bookAppointment)
+- This will update their existing appointment instead of creating a duplicate
+
 ## Important Guidelines
 - Always ask for their preferred date/time before checking availability
 - If they give a vague time like "next week", ask for a specific day
-- Confirm the appointment details before booking
+- Confirm the ${config.appointmentType} details before booking (date, time)
 - Keep the conversation natural and conversational
 - If they're not interested, thank them politely and end the call
 
 ## Handling Common Objections
-- "I'm not sure I need this" → "I completely understand. Many of our clients felt the same way, but found it really helpful once they came in."
+- "I'm not sure I need this" → "I completely understand. Many of our clients felt the same way, but found it really helpful once they decided to ${config.action}."
 - "I'm too busy" → "We have flexible scheduling including early morning and evening slots."
 - "I'll call back later" → "I'd be happy to check what's available right now - it only takes a moment."
-- "What's the cost?" → "I can have someone go over all the details with you at your appointment. Would you like me to find a time that works?"
+- "What's the cost?" → "I can have someone go over all the details with you at your ${config.appointmentType}. Would you like me to find a time that works?"
 - If they want to be contacted later, offer to call them back at a better time. Do NOT offer to send texts or emails - you can only make phone calls.
 
 ## Current Date Context
@@ -88,17 +106,37 @@ const TOOLS = [
     type: "function",
     function: {
       name: "bookAppointment",
-      description: "Book an appointment for the patient. Only use this after confirming the date and time with the patient.",
+      description: "Book a NEW appointment for the customer. Only use this after confirming the date and time with them. Include timezone offset in datetime.",
       parameters: {
         type: "object",
         properties: {
           datetime: {
             type: "string",
-            description: "The full date and time for the appointment in ISO 8601 format (e.g., 2026-01-20T10:00:00)"
+            description: "The full date and time with timezone offset in ISO 8601 format. MUST include timezone offset. Example: 2026-01-20T15:00:00-05:00 for 3pm Eastern"
           },
           notes: {
             type: "string",
-            description: "Any additional notes about the appointment (e.g., 'cleaning and checkup', 'first visit in 2 years')"
+            description: "Any additional notes about the appointment"
+          }
+        },
+        required: ["datetime"]
+      }
+    },
+    server: {
+      url: WEBHOOK_URL
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "rescheduleAppointment",
+      description: "Update an EXISTING appointment to a new time. Use this when the customer already has an appointment and wants to change it.",
+      parameters: {
+        type: "object",
+        properties: {
+          datetime: {
+            type: "string",
+            description: "The NEW date and time with timezone offset in ISO 8601 format. Example: 2026-01-20T15:00:00-05:00 for 3pm Eastern"
           }
         },
         required: ["datetime"]

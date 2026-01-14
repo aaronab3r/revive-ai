@@ -98,11 +98,11 @@ export async function manageAppointment(
       description: `Phone: ${phone}`,
       start: {
         dateTime: startDate.toISOString(),
-        timeZone: 'UTC', // Or adjustable if needed
+        timeZone: 'America/New_York',
       },
       end: {
         dateTime: endDate.toISOString(),
-        timeZone: 'UTC',
+        timeZone: 'America/New_York',
       },
     };
 
@@ -207,13 +207,31 @@ export async function checkAvailability(date: string) {
     console.log(`📅 Events found: ${events.data.items?.length || 0}`);
 
     const busySlots = events.data.items?.map(event => {
-        const start = event.start?.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit', timeZone: 'America/New_York'}) : 'All Day';
+        const start = event.start?.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', timeZone: 'America/New_York'}) : 'All Day';
         return start;
-    }).join(', ');
+    }) || [];
 
-    const result = busySlots && busySlots.length > 0 
-      ? `Busy times on that day: ${busySlots}.` 
-      : "The calendar is free. You can book.";
+    // Business hours: 9am to 5pm (9, 10, 11, 12, 1, 2, 3, 4, 5)
+    const allHours = ['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+    
+    // Find available hours by filtering out busy ones
+    const availableHours = allHours.filter(hour => {
+      return !busySlots.some(busy => {
+        // Normalize both for comparison (handle "10:00 AM" vs "10:00 AM" etc)
+        const busyNorm = busy.replace(':00', '').toLowerCase();
+        const hourNorm = hour.replace(':00', '').toLowerCase();
+        return busyNorm === hourNorm || busy.includes(hour.split(':')[0]);
+      });
+    });
+
+    let result: string;
+    if (busySlots.length === 0) {
+      result = `The calendar is wide open on that day. Available times: ${allHours.join(', ')}. Which time works best for the customer?`;
+    } else if (availableHours.length === 0) {
+      result = `Sorry, that day is fully booked. Please ask the customer to choose a different day.`;
+    } else {
+      result = `Busy times: ${busySlots.join(', ')}. Available times: ${availableHours.join(', ')}. Offer these available times to the customer.`;
+    }
     
     console.log('📅 Availability result:', result);
     return result;
