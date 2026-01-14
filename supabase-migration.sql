@@ -4,6 +4,15 @@
 -- =====================================================
 
 -- =====================================================
+-- STEP 0: Clear existing data (old single-tenant data)
+-- =====================================================
+-- WARNING: This deletes all existing settings and leads!
+-- This is necessary because the old data doesn't have user_id
+
+DELETE FROM settings;
+DELETE FROM leads;
+
+-- =====================================================
 -- STEP 1: Add user_id column to settings table
 -- =====================================================
 
