@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAvailability, manageAppointment } from '@/app/actions/calendar';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -8,9 +9,19 @@ export async function GET(req: Request) {
 
   console.log('🧪 Test Calendar API called:', { action, date });
 
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Unauthorized. Please log in to test the calendar.' 
+    }, { status: 401 });
+  }
+
   try {
     if (action === 'check') {
-      const result = await checkAvailability(date);
+      const result = await checkAvailability(date, user.id);
       return NextResponse.json({ 
         success: true, 
         action: 'checkAvailability',
@@ -24,7 +35,7 @@ export async function GET(req: Request) {
         name: 'Test Booking',
         phone: '+15551234567',
         datetime: `${date}T14:00:00`,
-      });
+      }, user.id);
       return NextResponse.json({ 
         success: !!result, 
         action: 'bookAppointment',
