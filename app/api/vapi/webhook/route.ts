@@ -238,10 +238,6 @@ async function updateLeadStatus(incomingPhone: string, status: string, notes: st
          .select());
     }
   }
-         .eq('id', targetId)
-         .select());
-    }
-  }
 
   if (error) {
     console.error("Supabase Error:", error);
