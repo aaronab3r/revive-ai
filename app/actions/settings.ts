@@ -1,7 +1,14 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { createSupabaseServerClient, getUser } from '@/lib/supabase/server';
+
+// Service role client for admin operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export interface SettingsData {
   vapi_private_key: string;
@@ -17,11 +24,13 @@ export interface SettingsData {
 }
 
 export async function getSettings() {
-  if (!supabaseAdmin) return null;
+  const user = await getUser();
+  if (!user) return null;
 
   const { data, error } = await supabaseAdmin
     .from('settings')
     .select('*')
+    .eq('user_id', user.id)
     .single();
 
   if (error) {
@@ -33,8 +42,9 @@ export async function getSettings() {
 }
 
 export async function updateSettings(formData: FormData) {
-  if (!supabaseAdmin) {
-    return { success: false, message: 'Server configuration error' };
+  const user = await getUser();
+  if (!user) {
+    return { success: false, message: 'Not authenticated' };
   }
 
   const vapi_private_key = formData.get('vapi_private_key') as string;
@@ -51,6 +61,7 @@ export async function updateSettings(formData: FormData) {
 
   // Debug logging
   console.log('💾 updateSettings called with:', {
+    user_id: user.id,
     business_name,
     business_industry,
     agent_name,
@@ -62,11 +73,11 @@ export async function updateSettings(formData: FormData) {
     calendar_email,
   });
 
-  // Matching User's Schema: id=true (bool singleton)
+  // Upsert using user_id as the key
   const { data, error } = await supabaseAdmin
     .from('settings')
     .upsert({
-      id: true, 
+      user_id: user.id, 
       vapi_private_key,
       vapi_public_key,
       vapi_assistant_id,
@@ -76,7 +87,7 @@ export async function updateSettings(formData: FormData) {
       business_industry,
       agent_name,
       agent_role
-    })
+    }, { onConflict: 'user_id' })
     .select();
 
   if (error) {

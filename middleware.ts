@@ -1,24 +1,10 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { type NextRequest } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
-export function middleware(request: NextRequest) {
-  const authSession = request.cookies.get('auth_session');
-  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
-  const isLoginPage = request.nextUrl.pathname === '/login';
-
-  // If user is on dashboard and NOT logged in -> redirect to login
-  if (isDashboard && !authSession) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // If user is on login page and IS logged in -> redirect to dashboard
-  if (isLoginPage && authSession) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  return NextResponse.next();
+export async function middleware(request: NextRequest) {
+  return await updateSession(request);
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/login', '/signup'],
 };

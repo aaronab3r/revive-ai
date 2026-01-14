@@ -1,5 +1,8 @@
 'use server';
 
+import { createClient } from '@supabase/supabase-js';
+import { getUser } from '@/lib/supabase/server';
+
 interface MakeCallInput {
   name: string;
   phone: string;
@@ -63,13 +66,15 @@ function isValidE164(phone: string): boolean {
   return e164Regex.test(phone);
 }
 
-import { createClient } from '@supabase/supabase-js';
-
-// ... (existing interfaces)
-
 export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
   const { name, phone, interest = 'general services' } = input;
   
+  // Get current user
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated. Please sign in.' };
+  }
+
   // Validate inputs
   if (!name || name.trim().length === 0) {
     return { success: false, error: 'Name is required' };
@@ -97,8 +102,12 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
     return { success: false, error: 'Database configuration error' };
   }
 
-  // Fetch Settings for Dynamic Keys
-  const { data: settings, error: settingsError } = await supabase.from('settings').select('*').eq('id', true).single();
+  // Fetch Settings for this user
+  const { data: settings, error: settingsError } = await supabase
+    .from('settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
   
   console.log('📞 makeCall - Fetched settings:', settings ? 'Found' : 'Not found', settingsError?.message || '');
 
@@ -117,7 +126,7 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
     return { success: false, error: 'Please configure your Vapi Keys in the Settings tab to start calling.' };
   }
 
-  // Update Supabase Status (Upsert Lead)
+  // Update Supabase Status (Upsert Lead with user_id)
   const { error: dbError } = await supabase
     .from('leads')
     .upsert(
@@ -126,9 +135,10 @@ export async function makeCall(input: MakeCallInput): Promise<MakeCallResult> {
         name: name.trim(), 
         status: 'Calling', 
         interest: interest.trim(),
-        last_contacted: new Date().toISOString()
+        last_contacted: new Date().toISOString(),
+        user_id: user.id
       },
-      { onConflict: 'phone' }
+      { onConflict: 'phone,user_id' }
     )
     .select();
 

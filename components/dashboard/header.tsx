@@ -1,10 +1,13 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { HelpCircle, AlertCircle } from 'lucide-react';
+import { HelpCircle, AlertCircle, LogOut } from 'lucide-react';
 import { getSettings } from '@/app/actions/settings';
+import { signOut } from '@/app/actions/auth';
+import { getUser } from '@/lib/supabase/server';
 
 export async function Header() {
   const settings = await getSettings();
+  const user = await getUser();
   const db = settings || {};
   const env = process.env;
 
@@ -36,6 +39,18 @@ export async function Header() {
             Configuration Missing
           </Badge>
         )}
+      </div>
+      
+      <div className="flex items-center gap-4">
+        {user && (
+          <span className="text-sm text-slate-500">{user.email}</span>
+        )}
+        <form action={signOut}>
+          <Button variant="ghost" size="sm" className="gap-2 text-slate-600 hover:text-slate-900">
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </Button>
+        </form>
       </div>
     </header>
   );

@@ -1,0 +1,45 @@
+'use server';
+
+import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
+import { getUser } from '@/lib/supabase/server';
+
+interface LeadInput {
+  name: string;
+  phone: string;
+  email?: string;
+  interest?: string;
+  notes?: string;
+}
+
+export async function uploadLeads(leads: LeadInput[]) {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Add user_id to each lead
+  const leadsWithUserId = leads.map(lead => ({
+    ...lead,
+    user_id: user.id,
+    status: 'Pending',
+  }));
+
+  const { data, error } = await supabase
+    .from('leads')
+    .upsert(leadsWithUserId, { onConflict: 'phone,user_id' })
+    .select();
+
+  if (error) {
+    console.error('Error uploading leads:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard');
+  return { success: true, count: data?.length || 0 };
+}

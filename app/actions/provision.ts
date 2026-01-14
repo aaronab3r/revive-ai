@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { getUser } from '@/lib/supabase/server';
 
 const VAPI_BASE_URL = 'https://api.vapi.ai';
 const WEBHOOK_URL = 'https://revive-ai-three.vercel.app/api/vapi/webhook';
@@ -167,6 +168,12 @@ interface ProvisionParams {
 
 export async function provisionSystem(params: ProvisionParams): Promise<ProvisionResult> {
   const { vapiPrivateKey, businessName, businessIndustry, agentName, agentRole } = params;
+
+  // Get current user
+  const user = await getUser();
+  if (!user) {
+    return { success: false, message: 'Not authenticated. Please sign in.' };
+  }
 
   if (!vapiPrivateKey || vapiPrivateKey.trim().length === 0) {
     return { success: false, message: 'Vapi Private Key is required.' };
@@ -336,11 +343,11 @@ export async function provisionSystem(params: ProvisionParams): Promise<Provisio
     const { error: dbError } = await supabase
       .from('settings')
       .upsert({
-        id: true,
+        user_id: user.id,
         vapi_private_key: vapiPrivateKey,
         vapi_assistant_id: assistantId,
         vapi_phone_number_id: phoneNumberId,
-      });
+      }, { onConflict: 'user_id' });
 
     if (dbError) {
       console.error('Database save failed:', dbError);

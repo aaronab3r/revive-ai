@@ -3,11 +3,13 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
-import { Upload, FileText, CheckCircle2, Download, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Download, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Lead, LeadStatus } from '@/types';
+import { uploadLeads } from '@/app/actions/leads';
+import { toast } from 'sonner';
 
 interface FileUploaderProps {
   onFileAccepted?: (file: File) => void;
@@ -16,38 +18,55 @@ interface FileUploaderProps {
 
 export function FileUploader({ onFileAccepted, onLeadsParsed }: FileUploaderProps) {
   const [acceptedFile, setAcceptedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const onDrop = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       if (files.length > 0) {
         const file = files[0];
         setAcceptedFile(file);
         onFileAccepted?.(file);
 
-        if (onLeadsParsed) {
-          Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-              const parsedLeads: Lead[] = results.data.map((row: any, index) => ({
-                id: `imported-${Date.now()}-${index}`,
-                name: row.Name || row.name || 'Unknown',
-                phone: row.Phone || row.phone || '',
-                email: row.Email || row.email || '',
-                status: 'Pending' as LeadStatus,
-                lastContacted: null,
-                interest: row.Interest || row.interest || 'General',
-                notes: row.Notes || row.notes || '',
-                createdAt: new Date(),
-              })).filter(lead => lead.name && lead.phone); // Basic validation
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: async (results) => {
+            const parsedLeads = results.data.map((row: any) => ({
+              name: row.Name || row.name || 'Unknown',
+              phone: row.Phone || row.phone || '',
+              email: row.Email || row.email || '',
+              interest: row.Interest || row.interest || 'General',
+              notes: row.Notes || row.notes || '',
+            })).filter((lead: any) => lead.name && lead.phone);
 
-              onLeadsParsed(parsedLeads);
-            },
-            error: (error) => {
-              console.error('Error parsing CSV:', error);
+            // Upload to Supabase with user_id
+            setIsUploading(true);
+            const result = await uploadLeads(parsedLeads);
+            setIsUploading(false);
+
+            if (result.success) {
+              toast.success(`Successfully imported ${result.count} leads`);
+              
+              // Also call the callback for local state update
+              if (onLeadsParsed) {
+                const mappedLeads: Lead[] = parsedLeads.map((lead: any, index: number) => ({
+                  id: `imported-${Date.now()}-${index}`,
+                  ...lead,
+                  status: 'Pending' as LeadStatus,
+                  lastContacted: null,
+                  createdAt: new Date(),
+                }));
+                onLeadsParsed(mappedLeads);
+              }
+            } else {
+              toast.error(`Failed to import leads: ${result.error}`);
             }
-          });
-        }
+          },
+          error: (error) => {
+            console.error('Error parsing CSV:', error);
+            toast.error('Failed to parse CSV file');
+          }
+        });
       }
     },
     [onFileAccepted, onLeadsParsed]

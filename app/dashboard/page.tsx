@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { FileUploader } from '@/components/dashboard/file-uploader';
 import { LeadsDataTable } from '@/components/dashboard/leads-table';
 import { StatsGrid } from '@/components/dashboard/stats-grid';
@@ -16,20 +16,35 @@ import RealtimeTracker from './components/RealtimeTracker';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [importCount, setImportCount] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, [supabase.auth]);
 
   // Check if settings are configured
   useEffect(() => {
+    if (!userId) return;
+    
     const checkConfig = async () => {
       try {
         const { data } = await supabase
           .from('settings')
           .select('vapi_private_key, vapi_assistant_id, vapi_phone_number_id')
-          .eq('id', true)
+          .eq('user_id', userId)
           .single();
         
         if (data?.vapi_private_key && data?.vapi_assistant_id && data?.vapi_phone_number_id) {
@@ -40,15 +55,18 @@ export default function DashboardPage() {
       }
     };
     checkConfig();
-  }, []);
+  }, [userId, supabase]);
 
   // Fetch initial leads from Supabase
   useEffect(() => {
+    if (!userId) return;
+
     const fetchLeads = async () => {
       try {
         const { data, error } = await supabase
           .from('leads')
           .select('*')
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
           
         if (error) {
@@ -81,7 +99,7 @@ export default function DashboardPage() {
 
     fetchLeads();
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes for this user's leads
     const channel = supabase
       .channel('realtime_leads')
       .on(
@@ -90,6 +108,7 @@ export default function DashboardPage() {
           event: '*',
           schema: 'public',
           table: 'leads',
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('Realtime change received!', payload);
@@ -102,7 +121,7 @@ export default function DashboardPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId, supabase]);
 
   const handleLeadsParsed = (newLeads: Lead[]) => {
      // In a real app, you would upload these to Supabase first
