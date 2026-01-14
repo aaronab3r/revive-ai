@@ -15,10 +15,22 @@ export default function SignUpPage() {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
+  const passwordRequirements = [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'Contains a symbol', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) }
+  ];
+
   async function handleEmailSignUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Check requirements
+    if (!passwordRequirements.every(req => req.met)) {
+      setError('Please meet all password requirements');
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -26,13 +38,7 @@ export default function SignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -43,7 +49,11 @@ export default function SignUpPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
+    } else if (data.session) {
+      // If we got a session, sign in is complete (email confirmation disabled or not required)
+      router.push('/dashboard');
     } else {
+      // Email confirmation required
       setSuccess(true);
     }
   }
@@ -121,8 +131,20 @@ export default function SignUpPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-700 text-white"
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                 />
+              </div>
+              <div className="mt-2 space-y-1 pl-1">
+                <p className="text-xs text-gray-400 mb-1">Password strength:</p>
+                {passwordRequirements.map((req, index) => (
+                  <div 
+                    key={index} 
+                    className={`text-xs flex items-center transition-colors duration-200 ${req.met ? 'text-green-400' : 'text-gray-500'}`}
+                  >
+                    <span className="mr-2 text-[10px]">{req.met ? '●' : '○'}</span>
+                    {req.label}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -140,7 +162,7 @@ export default function SignUpPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-700 text-white"
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                 />
               </div>
             </div>
