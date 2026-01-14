@@ -137,9 +137,3 @@ export async function updateSettings(formData: FormData) {
   
   return { success: true, message: 'Settings saved successfully' };
 }
-
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/settings');
-
-  return { success: true, message: 'Settings Saved' };
-}
