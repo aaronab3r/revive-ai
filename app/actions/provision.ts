@@ -8,8 +8,17 @@ const VAPI_BASE_URL = 'https://api.vapi.ai';
 const WEBHOOK_URL = 'https://revive-ai-three.vercel.app/api/vapi/webhook';
 
 // Dynamic System Prompt Generator
-function generateSystemPrompt(agentName: string, agentRole: string, businessName: string, industry: string): string {
+function generateSystemPrompt(
+  agentName: string, 
+  agentRole: string, 
+  businessName: string, 
+  industry: string,
+  businessHours?: { start: string, end: string },
+  cancellationPolicy?: string,
+  customKnowledge?: string
+): string {
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const hoursText = businessHours ? `${businessHours.start} to ${businessHours.end}` : '9am to 5pm';
   
   // Industry-specific terminology (fully dynamic - no generic "consultation" unless appropriate)
   const industryConfig: Record<string, { goal: string; appointmentType: string; action: string }> = {
@@ -51,13 +60,18 @@ function generateSystemPrompt(agentName: string, agentRole: string, businessName
 ## CRITICAL: Handling Availability
 - When checkAvailability returns busy times, you MUST proactively suggest available times
 - Calculate which times are FREE based on the busy slots returned
-- Business hours are 9am to 5pm
-- Example: If 10am and 2pm are busy, say "I see 10am and 2pm are taken. I have 9am, 11am, 12pm, 1pm, 3pm, 4pm, or 5pm available. Which works best for you?"
+- Business hours are ${hoursText}
+- Example: If 10am and 2pm are busy, say "I see 10am and 2pm are taken. I have [available times] available. Which works best for you?"
 - NEVER make the customer guess times - always offer specific available options
 
 ## CRITICAL: Rescheduling
 - If a customer already has an appointment and wants to change it, use the rescheduleAppointment tool (not bookAppointment)
 - This will update their existing appointment instead of creating a duplicate
+
+## Business Policies
+${cancellationPolicy ? `- Cancellation Policy: ${cancellationPolicy}` : '- Please provide 24 hours notice for cancellations.'}
+
+${customKnowledge ? `## Custom Knowledge Base\n${customKnowledge}\n` : ''}
 
 ## Important Guidelines
 - Always ask for their preferred date/time before checking availability
@@ -188,8 +202,32 @@ export async function provisionSystem(params: ProvisionParams): Promise<Provisio
   const finalAgentRole = agentRole?.trim() || 'Assistant';
   const finalIndustry = businessIndustry?.trim() || 'General';
 
+  // Fetch optional Business Settings from DB
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  
+  const { data: dbSettings } = await supabase
+    .from('settings')
+    .select('business_hours_start, business_hours_end, cancellation_policy, custom_knowledge')
+    .eq('user_id', user.id)
+    .single();
+
+  const businessHours = (dbSettings?.business_hours_start && dbSettings?.business_hours_end)
+    ? { start: dbSettings.business_hours_start, end: dbSettings.business_hours_end }
+    : undefined;
+
   // Generate dynamic prompts
-  const systemPrompt = generateSystemPrompt(finalAgentName, finalAgentRole, businessName, finalIndustry);
+  const systemPrompt = generateSystemPrompt(
+    finalAgentName, 
+    finalAgentRole, 
+    businessName, 
+    finalIndustry,
+    businessHours,
+    dbSettings?.cancellation_policy,
+    dbSettings?.custom_knowledge
+  );
   const firstMessage = generateFirstMessage(finalAgentName, businessName);
 
   // Log partial key for debugging (first 8 chars only)

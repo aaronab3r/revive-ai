@@ -34,6 +34,7 @@ interface StatsGridProps {
   stats: {
     callsMade: number;
     appointmentsBooked: number;
+    revenue?: number;
   };
 }
 
@@ -46,11 +47,11 @@ export function StatsGrid({ stats }: StatsGridProps) {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <StatsCard
         title="Revenue Reactivated"
-        value="$8,500"
+        value={formatCurrency(stats.revenue || 0)}
         icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
         description={
           <span className="text-emerald-600 font-medium">
-            ↑ 12% vs last month
+             Total value from bookings
           </span>
         }
       />

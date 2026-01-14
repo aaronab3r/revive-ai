@@ -58,19 +58,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function getUserCalendarEmail(userId: string) {
+async function getUserSettings(userId: string) {
   const { data: settings, error } = await supabase
     .from('settings')
-    .select('calendar_email')
+    .select('calendar_email, business_hours_start, business_hours_end, timezone')
     .eq('user_id', userId)
     .single();
     
   if (error) {
-    console.error(`❌ Error fetching calendar_email for user ${userId}:`, error.message);
+    console.error(`❌ Error fetching settings for user ${userId}:`, error.message);
     return null;
   }
-  console.log('📅 Calendar email from settings:', settings?.calendar_email || 'NOT SET');
-  return settings?.calendar_email;
+  return settings;
 }
 
 interface AppointmentDetails {
@@ -87,7 +86,10 @@ export async function manageAppointment(
   userId: string
 ): Promise<string | null> {
   try {
-    const calendarEmail = await getUserCalendarEmail(userId);
+    const settings = await getUserSettings(userId);
+    const calendarEmail = settings?.calendar_email;
+    const timeZone = settings?.timezone || 'America/New_York';
+
     if (!calendarEmail) {
       console.error('❌ Configuration Error: Missing calendar_email in settings.');
       return null;
@@ -104,11 +106,11 @@ export async function manageAppointment(
       description: `Phone: ${phone}`,
       start: {
         dateTime: startDate.toISOString(),
-        timeZone: 'America/New_York',
+        timeZone,
       },
       end: {
         dateTime: endDate.toISOString(),
-        timeZone: 'America/New_York',
+        timeZone,
       },
     };
 
@@ -186,7 +188,12 @@ export async function checkAvailability(date: string, userId: string) {
   console.log("📅 checkAvailability called with date:", date);
   
   try {
-    const calendarEmail = await getUserCalendarEmail(userId);
+    const settings = await getUserSettings(userId);
+    const calendarEmail = settings?.calendar_email;
+    const timeZone = settings?.timezone || 'America/New_York';
+    const startHour = parseInt((settings?.business_hours_start || '09:00').split(':')[0]);
+    const endHour = parseInt((settings?.business_hours_end || '17:00').split(':')[0]);
+
     if (!calendarEmail) {
       console.error('❌ No calendar email configured');
       return "Configuration Error: Please configure your Calendar Email in Settings.";
@@ -199,26 +206,37 @@ export async function checkAvailability(date: string, userId: string) {
     
     console.log(`📅 Checking calendar: ${calendarEmail} from ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
 
-    // console.log(`Checking Time Range: ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
-
     const events = await calendar.events.list({
       calendarId: calendarEmail, 
       timeMin: startOfDay.toISOString(),
       timeMax: endOfDay.toISOString(),
       singleEvents: true,
       orderBy: 'startTime',
-      timeZone: 'America/New_York',
+      timeZone: timeZone,
     });
 
     console.log(`📅 Events found: ${events.data.items?.length || 0}`);
 
     const busySlots = events.data.items?.map(event => {
-        const start = event.start?.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', timeZone: 'America/New_York'}) : 'All Day';
+        const start = event.start?.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', timeZone: timeZone}) : 'All Day';
         return start;
     }) || [];
 
-    // Business hours: 9am to 5pm (9, 10, 11, 12, 1, 2, 3, 4, 5)
-    const allHours = ['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+    // Generate Business hours dynamically
+    const allHours: string[] = [];
+    for (let h = startHour; h < endHour; h++) {
+       const d = new Date();
+       d.setHours(h, 0, 0, 0);
+       // Use a mock date but force the formatting manually if needed, or rely on locale
+       // We want "9:00 AM", "10:00 AM" etc.
+       const timeStr = d.toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit'});
+       allHours.push(timeStr);
+    }
+    
+    if (allHours.length === 0) {
+      // Fallback if config is weird
+      allHours.push('9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM');
+    }
     
     // Find available hours by filtering out busy ones
     const availableHours = allHours.filter(hour => {

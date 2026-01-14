@@ -6,13 +6,15 @@ import {
   LayoutDashboard,
   Settings,
   Sparkles,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Voice Agent Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Business Settings', href: '/dashboard/business-settings', icon: Briefcase },
 ];
 
 interface SidebarProps {

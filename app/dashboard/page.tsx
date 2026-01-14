@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [avgAppointmentValue, setAvgAppointmentValue] = useState(150);
 
   // Get current user
   useEffect(() => {
@@ -43,12 +44,15 @@ export default function DashboardPage() {
       try {
         const { data } = await supabase
           .from('settings')
-          .select('vapi_private_key, vapi_assistant_id, vapi_phone_number_id')
+          .select('vapi_private_key, vapi_assistant_id, vapi_phone_number_id, avg_appointment_value')
           .eq('user_id', userId)
           .single();
         
         if (data?.vapi_private_key && data?.vapi_assistant_id && data?.vapi_phone_number_id) {
           setIsConfigured(true);
+        }
+        if (data?.avg_appointment_value) {
+          setAvgAppointmentValue(data.avg_appointment_value);
         }
       } catch (e) {
         console.error('Error checking config:', e);
@@ -155,7 +159,8 @@ export default function DashboardPage() {
 
   const stats = {
     callsMade,
-    appointmentsBooked
+    appointmentsBooked,
+    revenue: appointmentsBooked * avgAppointmentValue
   };
 
   return (
