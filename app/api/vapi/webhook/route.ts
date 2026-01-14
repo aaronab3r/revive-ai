@@ -154,19 +154,22 @@ export async function POST(req: Request) {
         // console.log("Lead already booked. Skipping status overwrite.");
       } else {
         // Determine status based on endedReason
-        let newStatus = 'Pending';
+        let newStatus = 'Contacted'; // Default: Call happened but no booking
         
-        const failedReasons = ['voicemail', 'customer-did-not-answer', 'call-forwarding-detected'];
+        const voicemailReasons = ['voicemail', 'customer-did-not-answer', 'call-forwarding-detected', 'no-answer'];
+        const failedReasons = ['error', 'failed-to-connect-call', 'pipeline-error', 'phone-call-provider-error'];
         
-        if (failedReasons.includes(message.endedReason)) {
+        if (voicemailReasons.includes(message.endedReason)) {
           newStatus = 'Voicemail';
-        } else if (message.endedReason === 'completed') {
-           // Call completed but not booked (otherwise we would have hit Tool Call logic or Booked status check)
-           newStatus = 'Pending';
+        } else if (failedReasons.includes(message.endedReason)) {
+          newStatus = 'Failed';
+        } else if (message.endedReason === 'customer-busy') {
+          newStatus = 'Voicemail'; // Busy = try again later
         }
+        // For 'completed', 'assistant-ended-call', 'customer-ended-call' etc. -> 'Contacted'
 
         const summary = message.analysis ? message.analysis.summary : "No summary";
-        await updateLeadStatus(incomingPhone, newStatus, `Call Ended (${message.endedReason}). Summary: ${summary}`);
+        await updateLeadStatus(incomingPhone, newStatus, `Call Ended (${message.endedReason}). Summary: ${summary}`, userId);
       }
     }
 

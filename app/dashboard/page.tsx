@@ -152,7 +152,7 @@ export default function DashboardPage() {
 
   // Calculate dynamic stats
   const callsMade = leads.filter(l => 
-    ['Calling', 'Contacted', 'Voicemail', 'Booked'].includes(l.status || '')
+    ['Calling', 'Contacted', 'Voicemail', 'Booked', 'Failed'].includes(l.status || '')
   ).length;
 
   const appointmentsBooked = leads.filter(l => l.status === 'Booked').length;
@@ -161,6 +161,11 @@ export default function DashboardPage() {
     callsMade,
     appointmentsBooked,
     revenue: appointmentsBooked * avgAppointmentValue
+  };
+
+  const handleDeleteAll = () => {
+    // Reset local leads state - the table already clears it, but this ensures dashboard syncs
+    setLeads([]);
   };
 
   return (
@@ -228,7 +233,7 @@ export default function DashboardPage() {
             </button>
           </CardHeader>
           <CardContent>
-            <LeadsDataTable data={leads} />
+            <LeadsDataTable data={leads} onDeleteAll={handleDeleteAll} />
           </CardContent>
         </Card>
       </div>

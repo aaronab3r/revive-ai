@@ -43,3 +43,54 @@ export async function uploadLeads(leads: LeadInput[]) {
   revalidatePath('/dashboard');
   return { success: true, count: data?.length || 0 };
 }
+
+export async function deleteLead(leadId: string) {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { error } = await supabase
+    .from('leads')
+    .delete()
+    .eq('id', leadId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error deleting lead:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+export async function deleteAllLeads() {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { error } = await supabase
+    .from('leads')
+    .delete()
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error deleting all leads:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard');
+  return { success: true };
+}

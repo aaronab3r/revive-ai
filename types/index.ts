@@ -1,4 +1,4 @@
-export type LeadStatus = 'Pending' | 'Calling' | 'Booked' | 'Voicemail';
+export type LeadStatus = 'Pending' | 'Calling' | 'Contacted' | 'Booked' | 'Voicemail' | 'Failed';
 
 export interface Lead {
   id: string;

@@ -10,11 +10,12 @@ import {
   getSortedRowModel,
   SortingState,
 } from '@tanstack/react-table';
-import { Phone, ArrowUpDown, Loader2 } from 'lucide-react';
+import { Phone, ArrowUpDown, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Lead, LeadStatus } from '@/types';
 import { formatPhoneNumber, formatDate } from '@/lib/utils';
 import { makeCall } from '@/app/actions/make-call';
+import { deleteLead, deleteAllLeads } from '@/app/actions/leads';
 import {
   Table,
   TableBody,
@@ -28,13 +29,16 @@ import { Badge } from '@/components/ui/badge';
 
 interface LeadsDataTableProps {
   data: Lead[];
+  onDeleteAll?: () => void;
 }
 
-const statusVariantMap: Record<LeadStatus, 'pending' | 'calling' | 'booked' | 'voicemail'> = {
+const statusVariantMap: Record<LeadStatus, 'pending' | 'calling' | 'contacted' | 'booked' | 'voicemail' | 'failed'> = {
   Pending: 'pending',
   Calling: 'calling',
+  Contacted: 'contacted',
   Booked: 'booked',
   Voicemail: 'voicemail',
+  Failed: 'failed',
 };
 
 // CallButton component to handle individual row state
@@ -91,9 +95,57 @@ function CallButton({ lead, onStatusChange }: {
   );
 }
 
-export function LeadsDataTable({ data: initialData }: LeadsDataTableProps) {
+// DeleteButton component for individual lead deletion
+function DeleteButton({ lead, onDelete }: { 
+  lead: Lead; 
+  onDelete: (id: string) => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleDelete = () => {
+    setShowConfirm(false);
+    startTransition(async () => {
+      const result = await deleteLead(lead.id);
+      if (result.success) {
+        toast.success(`Deleted ${lead.name}`);
+        onDelete(lead.id);
+      } else {
+        toast.error('Failed to delete lead', { description: result.error });
+      }
+    });
+  };
+
+  if (showConfirm) {
+    return (
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="destructive" onClick={handleDelete} disabled={isPending}>
+          {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Yes'}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setShowConfirm(false)}>
+          No
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => setShowConfirm(true)}
+      className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1 h-8 w-8"
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+}
+
+export function LeadsDataTable({ data: initialData, onDeleteAll }: LeadsDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [leads, setLeads] = useState<Lead[]>(initialData);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync internal state with props when initialData changes (e.g. on file upload)
   useEffect(() => {
@@ -108,6 +160,25 @@ export function LeadsDataTable({ data: initialData }: LeadsDataTableProps) {
           : lead
       )
     );
+  };
+
+  const handleDeleteLead = (id: string) => {
+    setLeads(prevLeads => prevLeads.filter(lead => lead.id !== id));
+  };
+
+  const handleDeleteAll = async () => {
+    setIsDeleting(true);
+    const result = await deleteAllLeads();
+    setIsDeleting(false);
+    setShowDeleteAllConfirm(false);
+    
+    if (result.success) {
+      toast.success('All leads deleted successfully');
+      setLeads([]);
+      onDeleteAll?.();
+    } else {
+      toast.error('Failed to delete leads', { description: result.error });
+    }
   };
 
   const columns: ColumnDef<Lead>[] = [
@@ -184,10 +255,16 @@ export function LeadsDataTable({ data: initialData }: LeadsDataTableProps) {
       header: 'Actions',
       cell: ({ row }) => {
         return (
-          <CallButton 
-            lead={row.original} 
-            onStatusChange={handleStatusChange}
-          />
+          <div className="flex items-center gap-1">
+            <CallButton 
+              lead={row.original} 
+              onStatusChange={handleStatusChange}
+            />
+            <DeleteButton
+              lead={row.original}
+              onDelete={handleDeleteLead}
+            />
+          </div>
         );
       },
     },
@@ -212,6 +289,51 @@ export function LeadsDataTable({ data: initialData }: LeadsDataTableProps) {
 
   return (
     <div className="space-y-4">
+      {/* Delete All Confirmation Modal */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <AlertTriangle className="h-6 w-6" />
+              <h3 className="text-lg font-semibold">Delete All Leads?</h3>
+            </div>
+            <p className="text-slate-600 mb-6">
+              This will permanently delete all {leads.length} leads from your pipeline. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowDeleteAllConfirm(false)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteAll} disabled={isDeleting}>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete All Leads'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Button */}
+      {leads.length > 0 && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDeleteAllConfirm(true)}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete All
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-lg border border-slate-200 bg-white">
         <Table>
           <TableHeader>
