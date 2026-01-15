@@ -5,8 +5,9 @@ import { updateSettings } from '@/app/actions/settings';
 import { provisionSystem } from '@/app/actions/provision';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Copy, Check, Sparkles, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Copy, Check, Sparkles, Zap, CheckCircle2, AlertCircle, Clock, FileText, DollarSign } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 interface SettingsFormProps {
@@ -50,7 +51,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
     }
 
     if (!businessName) {
-      setMessage({ type: 'error', text: 'Please enter your Business Name in the section above.' });
+      setMessage({ type: 'error', text: 'Please enter your Business Name in Step 1 above.' });
       return;
     }
 
@@ -245,6 +246,108 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
         </div>
 
         {/* ============================================== */}
+        {/* BUSINESS SETTINGS - Hours, Policies, Knowledge */}
+        {/* ============================================== */}
+        <div className="mb-8 p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 bg-purple-600 rounded-lg">
+              <Clock className="h-4 w-4 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">Business Configuration</h3>
+            <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">Step 2</span>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Configure your business hours and policies. Your AI agent will use this information when talking to customers.
+          </p>
+
+          <div className="space-y-5">
+            {/* Business Hours */}
+            <div className="p-4 bg-white/70 rounded-lg border border-purple-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4 w-4 text-purple-600" />
+                <span className="font-medium text-slate-800">Business Hours</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="business_hours_start" className="text-sm">Opening Time</Label>
+                  <Input
+                    id="business_hours_start"
+                    name="business_hours_start"
+                    type="time"
+                    className="bg-white"
+                    defaultValue={defaults.business_hours_start || '09:00'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business_hours_end" className="text-sm">Closing Time</Label>
+                  <Input
+                    id="business_hours_end"
+                    name="business_hours_end"
+                    type="time"
+                    className="bg-white"
+                    defaultValue={defaults.business_hours_end || '17:00'}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Avg Appointment Value */}
+            <div className="p-4 bg-white/70 rounded-lg border border-purple-100">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-slate-800">Revenue Tracking</span>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="avg_appointment_value" className="text-sm">Average Appointment Value ($)</Label>
+                <Input
+                  id="avg_appointment_value"
+                  name="avg_appointment_value"
+                  type="number"
+                  className="bg-white max-w-xs"
+                  defaultValue={defaults.avg_appointment_value || 150}
+                  placeholder="150"
+                  min="0"
+                />
+                <p className="text-xs text-slate-500">Used to calculate "Revenue Recovered" on your dashboard.</p>
+              </div>
+            </div>
+
+            {/* Policies */}
+            <div className="p-4 bg-white/70 rounded-lg border border-purple-100">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-slate-600" />
+                <span className="font-medium text-slate-800">Policies & Knowledge Base</span>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cancellation_policy" className="text-sm">Cancellation Policy</Label>
+                  <Textarea
+                    id="cancellation_policy"
+                    name="cancellation_policy"
+                    rows={2}
+                    className="bg-white resize-none"
+                    defaultValue={defaults.cancellation_policy || 'Please provide at least 24 hours notice for cancellations.'}
+                    placeholder="e.g. We require 24 hours notice for all cancellations."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="custom_knowledge" className="text-sm">Custom Knowledge / FAQs</Label>
+                  <Textarea
+                    id="custom_knowledge"
+                    name="custom_knowledge"
+                    rows={4}
+                    className="bg-white resize-none"
+                    defaultValue={defaults.custom_knowledge || ''}
+                    placeholder={`Q: Do you accept insurance?\nA: Yes, we accept Blue Cross and Aetna.\n\nQ: Where do I park?\nA: Free lot behind the building.`}
+                  />
+                  <p className="text-xs text-slate-500">Add Q&A pairs or instructions the AI should know.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================== */}
         {/* QUICK SETUP - One Click Configuration */}
         {/* ============================================== */}
         <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
@@ -252,8 +355,16 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
             <div className="p-1.5 bg-blue-600 rounded-lg">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900">Quick Setup</h3>
-            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">Step 2</span>
+            <h3 className="text-lg font-semibold text-slate-900">Voice Agent Setup</h3>
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">Step 3</span>
+          </div>
+          
+          {/* Important Notice */}
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-3 items-start">
+            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-800">
+              <span className="font-semibold">Complete Steps 1 & 2 first!</span> Your AI agent is built using the business details above. If you change them later, you&apos;ll need to re-provision your agent.
+            </p>
           </div>
           
           {/* Setup Guide */}
@@ -326,7 +437,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
         </div>
 
         {/* ============================================== */}
-        {/* CALENDAR CONFIGURATION - Step 3 */}
+        {/* CALENDAR CONFIGURATION - Step 4 */}
         {/* ============================================== */}
         <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
           <div className="flex items-center gap-2 mb-3">
@@ -334,7 +445,7 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900">Calendar Configuration</h3>
-            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Step 3</span>
+            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Step 4</span>
           </div>
           
           <div className="mb-4 p-3 bg-green-100/50 border border-green-200 rounded-lg flex gap-3 items-start">

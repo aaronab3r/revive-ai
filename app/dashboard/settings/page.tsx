@@ -29,6 +29,12 @@ export default async function SettingsPage() {
     business_industry: settings.business_industry || '',
     agent_name: settings.agent_name || '',
     agent_role: settings.agent_role || '',
+    // Business Settings
+    business_hours_start: settings.business_hours_start || '09:00',
+    business_hours_end: settings.business_hours_end || '17:00',
+    avg_appointment_value: settings.avg_appointment_value || 150,
+    cancellation_policy: settings.cancellation_policy || '',
+    custom_knowledge: settings.custom_knowledge || '',
   } : null;
 
   return (

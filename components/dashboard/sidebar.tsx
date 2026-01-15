@@ -13,8 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Voice Agent Settings', href: '/dashboard/settings', icon: Settings },
-  { name: 'Business Settings', href: '/dashboard/business-settings', icon: Briefcase },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 interface SidebarProps {
