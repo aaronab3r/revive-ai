@@ -97,28 +97,25 @@ export async function updateSettings(formData: FormData) {
     vapi_private_key: updates.vapi_private_key ? '***set***' : undefined, 
   });
 
-  // We use upsert. Since we might have new columns that are null in DB but not in updates, 
-  // we should be careful. 
-  // However, partial updates in Supabase via .update() are better if row exists.
-  // Let's try .select() first to see if row exists.
-
+  // Check if settings row already exists for this user
   const { data: existing } = await supabaseAdmin
     .from('settings')
-    .select('id')
+    .select('user_id')
     .eq('user_id', user.id)
     .single();
 
   let error;
   
   if (existing) {
+    // Row exists - update it (remove user_id from updates since it's the PK)
+    const { user_id, ...updateData } = updates;
     const { error: updateError } = await supabaseAdmin
       .from('settings')
-      .update(updates)
+      .update(updateData)
       .eq('user_id', user.id);
     error = updateError;
   } else {
-    // For new user, we might be missing fields if we use the partial 'updates' object
-    // But presumably the user fills the main settings first. 
+    // No row exists - insert new one
     const { error: insertError } = await supabaseAdmin
       .from('settings')
       .insert(updates);
