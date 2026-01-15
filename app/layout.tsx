@@ -3,8 +3,8 @@ import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Revive AI - Dead Lead Reactivation',
-  description: 'AI-powered lead reactivation platform for all types of businesses.',
+  title: 'Revive AI | Voice Agent for Lead Reactivation',
+  description: 'Turn cold leads into booked appointments on autopilot. The intelligent voice AI platform that calls, qualifies, and schedules meetings 24/7.',
 };
 
 export default function RootLayout({

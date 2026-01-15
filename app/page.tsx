@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { UploadCloud, Bot, CalendarCheck, PlayCircle, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import HighTouchSection from '@/components/landing/HighTouchSection';
 
 export default function LandingPage() {
   return (
@@ -206,51 +207,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* USE CASES & FEATURES */}
-        <section className="w-full py-24 sm:py-32 px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="flex flex-col items-center text-center">
-            
-            <div className="max-w-3xl">
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl mb-6">Designed for High-Touch Industries</h2>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                Revive AI isn't a generic robocaller. It's a purpose-built reactivation engine designed for businesses where a single appointment is worth hundreds or thousands of dollars.
-              </p>
-              
-              <div className="flex justify-center text-left">
-                <ul className="space-y-6 inline-block">
-                <li className="flex items-start gap-4">
-                  <div className="flex-none mt-1">
-                    <CheckCircle2 className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-900">Dental & Medical</h4>
-                    <p className="text-slate-600 text-sm mt-1">Fill hygiene schedules and reactivate continuing care patients.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-4">
-                   <div className="flex-none mt-1">
-                    <CheckCircle2 className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-900">Real Estate & Mortgage</h4>
-                    <p className="text-slate-600 text-sm mt-1">Re-engage old internet leads and qualify intent before you call.</p>
-                  </div>
-                </li>
-                 <li className="flex items-start gap-4">
-                   <div className="flex-none mt-1">
-                    <CheckCircle2 className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-900">Med Spa & Elective</h4>
-                    <p className="text-slate-600 text-sm mt-1">Drive consultations for high-ticket procedures automatically.</p>
-                  </div>
-                </li>
-              </ul>
-              </div>
-            </div>
-            
-          </div>
-        </section>
+        {/* HIGH TOUCH INDUSTRIES (NEW) */}
+        <HighTouchSection />
 
         {/* CTA SECTION */}
         <section className="w-full py-24 sm:py-32 relative overflow-hidden bg-slate-900">
@@ -260,7 +218,7 @@ export default function LandingPage() {
            <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-6">Ready to clear the graveyard?</h2>
              <p className="text-lg leading-8 text-slate-300 mb-10 max-w-2xl mx-auto">
-                Join high-performance practices using Revive AI to turn dead leads into active revenue.
+                Join high-performance companies using Revive AI to turn dead leads into active revenue.
              </p>
              <a 
               href="https://cal.com/partner-smile/revenue-recovery-audit" 
