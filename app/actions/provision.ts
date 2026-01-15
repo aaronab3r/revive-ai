@@ -46,10 +46,16 @@ function generateSystemPrompt(
 ## Your Objective
 1. Greet the customer warmly and introduce yourself
 2. Mention it's been a while since you've connected
-3. Offer to schedule a ${config.appointmentType}
-4. Handle any objections with empathy
-5. Use the checkAvailability tool to find open slots
-6. Use the bookAppointment tool to confirm the booking
+3. Reference their specific interest: "{{interest}}" - use this to personalize the conversation
+4. Offer to schedule a ${config.appointmentType} related to their interest
+5. Handle any objections with empathy
+6. Use the checkAvailability tool to find open slots
+7. Use the bookAppointment tool to confirm the booking
+
+## IMPORTANT: Personalization
+- The customer's interest/reason for call is: {{interest}}
+- Always reference this specific interest when discussing what they need
+- Tailor your language to match their specific concern, not generic services
 
 ## CRITICAL: Time Zone Handling
 - The customer is in the US Eastern timezone (America/New_York)
@@ -92,7 +98,7 @@ Today is ${currentDate}.`;
 }
 
 function generateFirstMessage(agentName: string, businessName: string): string {
-  return `Hi {{customer.name}}, this is ${agentName} calling from ${businessName}. How are you doing today?`;
+  return `Hi {{customer.name}}, this is ${agentName} calling from ${businessName}. I'm reaching out because I see you were interested in {{interest}}. How are you doing today?`;
 }
 
 // Tool definitions for the assistant
