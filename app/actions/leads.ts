@@ -43,7 +43,7 @@ export async function uploadLeads(leads: LeadInput[]) {
   }
 
   revalidatePath('/dashboard');
-  return { success: true, count: data?.length || 0 };
+  return { success: true, count: data?.length || 0, leads: data };
 }
 
 export async function deleteLead(leadId: string) {

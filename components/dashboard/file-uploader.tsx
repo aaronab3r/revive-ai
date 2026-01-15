@@ -47,14 +47,17 @@ export function FileUploader({ onFileAccepted, onLeadsParsed }: FileUploaderProp
             if (result.success) {
               toast.success(`Successfully imported ${result.count} leads`);
               
-              // Also call the callback for local state update
-              if (onLeadsParsed) {
-                const mappedLeads: Lead[] = parsedLeads.map((lead: any, index: number) => ({
-                  id: `imported-${Date.now()}-${index}`,
-                  ...lead,
-                  status: 'Pending' as LeadStatus,
-                  lastContacted: null,
-                  createdAt: new Date(),
+              // Use the real leads returned from the database with actual IDs
+              if (onLeadsParsed && result.leads) {
+                const mappedLeads: Lead[] = result.leads.map((lead: any) => ({
+                  id: lead.id,
+                  name: lead.name,
+                  phone: lead.phone,
+                  interest: lead.interest || undefined,
+                  notes: lead.notes || undefined,
+                  status: (lead.status || 'Pending') as LeadStatus,
+                  lastContacted: lead.last_contacted ? new Date(lead.last_contacted) : null,
+                  createdAt: new Date(lead.created_at),
                 }));
                 onLeadsParsed(mappedLeads);
               }
