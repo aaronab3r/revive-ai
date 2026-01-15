@@ -47,10 +47,9 @@ export async function uploadLeads(leads: LeadInput[]) {
 }
 
 export async function deleteLead(leadId: string) {
-  // Input validation - ensure leadId is a valid UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!leadId || !uuidRegex.test(leadId)) {
-    return { success: false, error: 'Invalid lead ID format' };
+  // Input validation - ensure leadId exists and is not empty
+  if (!leadId || leadId.trim() === '') {
+    return { success: false, error: 'Invalid lead ID' };
   }
 
   const user = await getUser();
