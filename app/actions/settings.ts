@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient, getUser } from '@/lib/supabase/server';
+import { updateVapiAssistant } from './provision';
 
 // Service role client for admin operations
 const supabaseAdmin = createClient(
@@ -128,6 +129,13 @@ export async function updateSettings(formData: FormData) {
   }
 
   console.log('✅ Settings saved successfully');
+  
+  // Update Vapi assistant if it exists (to sync system prompt with new business settings)
+  const vapiUpdateResult = await updateVapiAssistant();
+  if (vapiUpdateResult.success && vapiUpdateResult.message !== 'No assistant to update (not yet provisioned)') {
+    console.log('✅ Vapi assistant also updated');
+  }
+  
   revalidatePath('/dashboard/settings');
   revalidatePath('/dashboard/business-settings');
   revalidatePath('/dashboard'); // Update dashboard for revenue changes

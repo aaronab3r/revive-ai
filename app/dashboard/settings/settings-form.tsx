@@ -130,6 +130,25 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
       calendarEmailHidden.value = quickCalendarEmail.value;
     }
 
+    // Step 2: Business Configuration - Sync all fields
+    const businessHoursStartVisible = document.getElementById('business_hours_start') as HTMLInputElement;
+    const businessHoursEndVisible = document.getElementById('business_hours_end') as HTMLInputElement;
+    const avgAppointmentValueVisible = document.getElementById('avg_appointment_value') as HTMLInputElement;
+    const cancellationPolicyVisible = document.getElementById('cancellation_policy') as HTMLTextAreaElement;
+    const customKnowledgeVisible = document.getElementById('custom_knowledge') as HTMLTextAreaElement;
+
+    const businessHoursStartHidden = formEl.querySelector('input[name="business_hours_start"]') as HTMLInputElement;
+    const businessHoursEndHidden = formEl.querySelector('input[name="business_hours_end"]') as HTMLInputElement;
+    const avgAppointmentValueHidden = formEl.querySelector('input[name="avg_appointment_value"]') as HTMLInputElement;
+    const cancellationPolicyHidden = formEl.querySelector('input[name="cancellation_policy"]') as HTMLInputElement;
+    const customKnowledgeHidden = formEl.querySelector('input[name="custom_knowledge"]') as HTMLInputElement;
+
+    if (businessHoursStartHidden && businessHoursStartVisible) businessHoursStartHidden.value = businessHoursStartVisible.value;
+    if (businessHoursEndHidden && businessHoursEndVisible) businessHoursEndHidden.value = businessHoursEndVisible.value;
+    if (avgAppointmentValueHidden && avgAppointmentValueVisible) avgAppointmentValueHidden.value = avgAppointmentValueVisible.value;
+    if (cancellationPolicyHidden && cancellationPolicyVisible) cancellationPolicyHidden.value = cancellationPolicyVisible.value;
+    if (customKnowledgeHidden && customKnowledgeVisible) customKnowledgeHidden.value = customKnowledgeVisible.value;
+
     const formData = new FormData(formEl);
     
     // Debug: Log what we're sending
@@ -138,6 +157,11 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
       business_industry: formData.get('business_industry'),
       agent_name: formData.get('agent_name'),
       agent_role: formData.get('agent_role'),
+      business_hours_start: formData.get('business_hours_start'),
+      business_hours_end: formData.get('business_hours_end'),
+      avg_appointment_value: formData.get('avg_appointment_value'),
+      cancellation_policy: formData.get('cancellation_policy'),
+      custom_knowledge: formData.get('custom_knowledge'),
       vapi_private_key: formData.get('vapi_private_key') ? '***set***' : '***empty***',
       vapi_assistant_id: formData.get('vapi_assistant_id'),
       vapi_phone_number_id: formData.get('vapi_phone_number_id'),
@@ -548,6 +572,13 @@ export function SettingsForm({ initialSettings, serviceAccountEmail }: SettingsF
           <input type="hidden" name="business_industry" id="form_business_industry" defaultValue={defaults.business_industry || 'General'} />
           <input type="hidden" name="agent_name" id="form_agent_name" defaultValue={defaults.agent_name || 'Sarah'} />
           <input type="hidden" name="agent_role" id="form_agent_role" defaultValue={defaults.agent_role || 'Assistant'} />
+          
+          {/* Hidden fields for Step 2: Business Configuration */}
+          <input type="hidden" name="business_hours_start" id="form_business_hours_start" defaultValue={defaults.business_hours_start || '09:00'} />
+          <input type="hidden" name="business_hours_end" id="form_business_hours_end" defaultValue={defaults.business_hours_end || '17:00'} />
+          <input type="hidden" name="avg_appointment_value" id="form_avg_appointment_value" defaultValue={defaults.avg_appointment_value || 150} />
+          <input type="hidden" name="cancellation_policy" id="form_cancellation_policy" defaultValue={defaults.cancellation_policy || ''} />
+          <input type="hidden" name="custom_knowledge" id="form_custom_knowledge" defaultValue={defaults.custom_knowledge || ''} />
 
           {/* VAPI Configuration */}
           <div className="space-y-4">

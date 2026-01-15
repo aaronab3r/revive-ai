@@ -87,6 +87,8 @@ Their interest: {{interest}}
 - "How much does it cost?" → "Great question - I can have someone go over everything when you come in. Want me to find a time?"
 - "Let me think about it" → "Of course, take your time. Would it help if I checked what times are available this week?"
 
+${cancellationPolicy ? `## Cancellation Policy\nIf asked about cancellations: ${cancellationPolicy}\n` : ''}
+${customKnowledge ? `## Additional Business Information\n${customKnowledge}\n` : ''}
 Today is ${currentDate}.`;
 }
 
@@ -409,6 +411,102 @@ export async function provisionSystem(params: ProvisionParams): Promise<Provisio
     return { 
       success: false, 
       message: `An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
+  }
+}
+
+// Update existing Vapi assistant with new system prompt when settings change
+export async function updateVapiAssistant(): Promise<{ success: boolean; message: string }> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, message: 'Not authenticated' };
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Get all settings for this user
+  const { data: settings, error: settingsError } = await supabase
+    .from('settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  if (settingsError || !settings) {
+    return { success: false, message: 'No settings found' };
+  }
+
+  // Check if we have the required Vapi credentials
+  if (!settings.vapi_private_key || !settings.vapi_assistant_id) {
+    // No assistant to update - that's OK, they haven't provisioned yet
+    return { success: true, message: 'No assistant to update (not yet provisioned)' };
+  }
+
+  // Build the updated system prompt
+  const businessHours = (settings.business_hours_start && settings.business_hours_end)
+    ? { start: settings.business_hours_start, end: settings.business_hours_end }
+    : undefined;
+
+  const systemPrompt = generateSystemPrompt(
+    settings.agent_name || 'Sarah',
+    settings.agent_role || 'Assistant',
+    settings.business_name || 'Our Company',
+    settings.business_industry || 'General',
+    businessHours,
+    settings.cancellation_policy,
+    settings.custom_knowledge
+  );
+
+  const firstMessage = generateFirstMessage(
+    settings.agent_name || 'Sarah',
+    settings.business_name || 'Our Company'
+  );
+
+  try {
+    // Update the Vapi assistant
+    const response = await fetch(`${VAPI_BASE_URL}/assistant/${settings.vapi_assistant_id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${settings.vapi_private_key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: settings.business_name?.substring(0, 40) || 'AI Assistant',
+        model: {
+          provider: "openai",
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            }
+          ],
+          tools: TOOLS,
+          toolIds: []
+        },
+        firstMessage: firstMessage,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Failed to update Vapi assistant:', errorData);
+      return { 
+        success: false, 
+        message: `Failed to update AI assistant: ${errorData.message || response.statusText}` 
+      };
+    }
+
+    console.log('✅ Vapi assistant updated with new settings');
+    return { success: true, message: 'AI assistant updated successfully' };
+
+  } catch (error) {
+    console.error('Error updating Vapi assistant:', error);
+    return { 
+      success: false, 
+      message: `Error updating assistant: ${error instanceof Error ? error.message : 'Unknown error'}` 
     };
   }
 }
