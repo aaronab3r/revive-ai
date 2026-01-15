@@ -1,7 +1,10 @@
 import { getSettings } from '@/app/actions/settings';
 import { SettingsForm } from './settings-form';
+import { getUser } from '@/lib/supabase/server';
+import { ResetAccountSection } from './reset-account-section';
 
 export default async function SettingsPage() {
+  const user = await getUser();
   const settings = await getSettings();
   
   // Extract Service Account Email safely
@@ -38,6 +41,12 @@ export default async function SettingsPage() {
       </div>
       <div className="flex flex-col gap-6">
         <SettingsForm initialSettings={cleanSettings} serviceAccountEmail={serviceAccountEmail} />
+        
+        {user?.email && (
+          <div className="pt-6 border-t">
+            <ResetAccountSection userEmail={user.email} />
+          </div>
+        )}
       </div>
     </div>
   );
