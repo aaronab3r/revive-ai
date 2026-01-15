@@ -4,10 +4,10 @@ export interface Lead {
   id: string;
   name: string;
   phone: string;
-  email: string;
+  email?: string;
   status: LeadStatus;
   lastContacted: Date | null;
-  interest: string;
+  interest?: string;
   notes?: string;
   createdAt: Date;
 }
