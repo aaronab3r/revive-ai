@@ -7,7 +7,6 @@ import { getUser } from '@/lib/supabase/server';
 interface LeadInput {
   name: string;
   phone: string;
-  email?: string;
   interest?: string;
   notes?: string;
 }
@@ -23,9 +22,12 @@ export async function uploadLeads(leads: LeadInput[]) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Add user_id to each lead
+  // Add user_id to each lead, only include fields that exist in the database
   const leadsWithUserId = leads.map(lead => ({
-    ...lead,
+    name: lead.name,
+    phone: lead.phone,
+    interest: lead.interest || null,
+    notes: lead.notes || null,
     user_id: user.id,
     status: 'Pending',
   }));
