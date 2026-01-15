@@ -94,20 +94,20 @@ Revive AI uses Supabase (PostgreSQL) for data storage with Row Level Security en
 ### 1. Create a Supabase Project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Wait for the project to initialize
+2. Wait for the project to initialize (~2 minutes)
 
-### 2. Create the Required Tables
+### 2. Run the Database Schema
 
-Run the SQL schema in your Supabase SQL Editor. The migration file is located at:
-
-```
-/supabase-migration.sql
-```
+1. In your Supabase Dashboard, go to **SQL Editor**
+2. Click **New Query**
+3. Copy and paste the contents of [`/supabase/schema.sql`](supabase/schema.sql)
+4. Click **Run** to execute
 
 This creates:
 - **`settings`** table - Stores per-user configuration (Vapi keys, business details, calendar settings)
 - **`leads`** table - Stores customer leads with call status and history
 - **RLS Policies** - Ensures users can only access their own data
+- **Service Role Policies** - Allows server-side operations via webhook
 
 ### 3. Enable Email Auth
 
